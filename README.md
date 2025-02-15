@@ -1,5 +1,7 @@
 # SETH
 A AI i have created to detect human emotions and answer accordingly.
+<span style="color:green">T# S - Sensing</span>
+
 # S - Sensing
 # E - Emotion and
 # T - Trying to
