@@ -6,3 +6,5 @@ A AI i have created to detect human emotions and answer accordingly.
 # H - Help
 
 This AI is able to detect the emotions of human with their input in text and speech to detect the emotion of the user adn respond accordingly.
+
+Use the requirenments.txt file to install the modules.
