@@ -1,40 +1,58 @@
-#Code for performing logistic regression on the dataset
-
-from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import joblib 
+from sklearn.tree import DecisionTreeClassifier
+import pickle
+import pandas as pd
+from csv_import import X, y, label_encoder
+from tf_idf import X_train_vec, X_test_vec, vectorizer
+from sklearn.utils.class_weight import compute_class_weight
+import numpy as np
+import os
 from train_test import X_train, X_test, y_train, y_test
-from tf_idf import X_train_vec, X_test_vec,tfidf
 
-model = XGBClassifier(
-    max_depth = 6,
-    n_estimators=100,
-    learning_rate = 0.2,
-    subsample = 0.7,
-    colsample_bytree = 0.7,
-    random_state = 42,
-    tree_method='hist',
-    n_jobs = -1,
-    eval_metric = 'mlogloss'
-)
 
-#training the decision tree
+# Compute class weights
+class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(y_train), y=y_train)
+class_weight_dict = {i: class_weights[i] for i in range(len(class_weights))}
+
+# Train Decision Tree model
+model = DecisionTreeClassifier(class_weight=class_weight_dict, random_state=42)
 model.fit(X_train_vec, y_train)
 
-y_pred = model.predict(X_test_vec)
-
-accuracy = accuracy_score(y_test, y_pred)
+# Evaluate accuracy
+accuracy = model.score(X_test_vec, y_test)
 print(f"Accuracy: {accuracy:.2f}")
 
+# Save model & vectorizer
 
-print(classification_report(y_test, y_pred))
+save_path = "/Users/clnarayanan/Documents/MyWork/SETH/Model"
+os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-try: 
-    joblib.dump(model, '../Model/emotion_training_model.pkl') # saving model for future use
-    joblib.dump(tfidf, '../Model/tfidf_vectorizer.pkl') # saving vectorizer for future use
-    print("\nVEctoerizer saved as 'tfidf_vectorizer.pkl' in the Model folder") # confirmation message for saving
-    print("\nModel Saved as 'emotion_training_model.pkl' in the Model folder") # confirmation message for saving
+with open(os.path.join(save_path,"emotion_model.pkl"), "wb") as f:
+    pickle.dump(model, f)
 
-except Exception as e:
-    print("\nModel not saved") # error message for saving
-    print("Exception:\n", e) # display error message
+with open(os.path.join(save_path,"tfidf_vectorizer.pkl"), "wb") as f:
+    pickle.dump(vectorizer, f)
+
+with open(os.path.join(save_path,"label_encoder.pkl"), "wb") as f:
+    pickle.dump(label_encoder, f)
+
+# Debugging: Print label mappings
+label_mapping = {label: idx for idx, label in enumerate(label_encoder.classes_)}
+reverse_mapping = {idx: label for label, idx in label_mapping.items()}
+print("Emotion Mapping:", label_mapping)
+print("Reverse Mapping:", reverse_mapping)
+
+# Function to predict emotion
+def predict_emotion(text):
+    text_vec = vectorizer.transform([text])
+    predicted_label = model.predict(text_vec)[0]
+    return reverse_mapping[predicted_label]
+
+# Interactive Testing
+while True:
+    user_input = input("You: ")
+    if user_input.lower() == "exit":
+        print("Exit emotion detection")
+        break
+
+    predicted_emotion = predict_emotion(user_input)
+    print(f"Mapped Emotion: {predicted_emotion}")
